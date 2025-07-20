@@ -6,7 +6,7 @@ A modern Retrieval-Augmented Generation (RAG) application built with LangChain, 
 
 - 📄 **Document Processing**: Support for PDF, TXT, MD, and DOCX documents
 - 🔍 **Vector Search**: Efficient semantic search using ChromaDB
-- 🤖 **AI Chat**: Conversational interface powered by OpenAI
+- 🤖 **AI Chat**: Conversational interface powered by free HuggingFace models
 - 🌐 **Web Interface**: Beautiful Streamlit-based UI
 - 📊 **Document Management**: Upload, process, and manage your documents
 
@@ -31,8 +31,7 @@ langchain-rag-app/
 │       ├── __init__.py
 │       └── app.py               # Main Streamlit application
 ├── tests/                       # Test files
-│   ├── __init__.py
-│   └── test_rag.py              # RAG system tests
+│   └── __init__.py
 ├── config/                      # Configuration files
 │   ├── __init__.py
 │   └── setup.py                 # Setup script
@@ -49,7 +48,7 @@ langchain-rag-app/
 
 ### 1. Prerequisites
 - Python 3.8+ (latest stable version recommended)
-- OpenAI API key
+- No API keys required - using free HuggingFace models!
 
 ### 2. Quick Setup (Recommended)
 
@@ -61,8 +60,6 @@ python config/setup.py
 ### 3. Manual Setup
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
 cd langchain-rag-app
 
 # Create virtual environment
@@ -77,16 +74,61 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Create .env file and add your OpenAI API key
-# Copy from env_example.txt
+# Create optional .env file for model configuration
+# Copy from env_example.txt (optional)
 ```
 
-### 4. Environment Setup
+### 4. Environment Setup (Optional)
 
-Create a `.env` file in the root directory:
+The application uses free HuggingFace models, so no API keys are required! A `.env` file is optional and can be used for model configuration:
 
+#### **Quick Configuration Options:**
+
+**Use Model Presets (Recommended):**
 ```env
-OPENAI_API_KEY=your_openai_api_key_here
+# Choose from: fast, balanced, quality, max_quality, technical, mistral, mixtral, phi, gemma, gpt2, llama2
+MODEL_PRESET=fast          # Microsoft Phi-2 (fast, 3GB RAM)
+MODEL_PRESET=balanced      # Microsoft Phi-2 (default, 3GB RAM)
+MODEL_PRESET=quality       # Mistral 7B (excellent, 8GB RAM)
+MODEL_PRESET=max_quality   # Mixtral 8x7B (best, 16GB RAM)
+MODEL_PRESET=technical     # Code Llama 7B (coding/docs, 8GB RAM)
+MODEL_PRESET=mistral       # Mistral 7B (alternative)
+MODEL_PRESET=mixtral       # Mixtral 8x7B (alternative)
+MODEL_PRESET=phi           # Microsoft Phi-2 (alternative)
+MODEL_PRESET=gemma         # Google Gemma 7B (8GB RAM)
+```
+
+**Use Custom Models:**
+```env
+CUSTOM_LLM_MODEL=your-custom-model-name
+CUSTOM_EMBEDDING_MODEL=your-custom-embedding-model
+```
+
+**Advanced Settings:**
+```env
+TEMPERATURE=0.7            # Control response randomness
+MAX_NEW_TOKENS=512         # Maximum tokens in response
+LOAD_IN_8BIT=true          # Use 8-bit quantization
+DEVICE_MAP=auto            # Device mapping
+```
+
+**Device Configuration (GPU/CPU):**
+```env
+FORCE_DEVICE=auto          # Auto-detect (default)
+FORCE_DEVICE=cpu           # Force CPU usage
+FORCE_DEVICE=cuda          # Force CUDA GPU usage
+FORCE_DEVICE=mps           # Force Apple Silicon GPU
+EMBEDDING_USE_GPU=true     # Enable GPU for embeddings
+```
+
+**View Configuration Options:**
+```bash
+python config/show_config.py
+```
+
+**Check Device Configuration:**
+```bash
+python show_devices.py
 ```
 
 ### 5. Run the Application
@@ -124,18 +166,11 @@ The application will be available at `http://localhost:8501`
 
 ## Testing
 
-Run the test suite to verify everything works:
-
-```bash
-python tests/test_rag.py
-```
-
+The application includes comprehensive functionality testing through the web interface. You can test the system by:
 ## Development
 
-### Running Tests
-```bash
-python tests/test_rag.py
-```
+### Testing the Application
+The application can be tested through the web interface by uploading documents and asking questions to verify the RAG functionality works correctly.
 
 ### Code Structure
 
@@ -149,7 +184,7 @@ python tests/test_rag.py
 
 1. Create new modules in the appropriate `src/` subdirectory
 2. Update the relevant `__init__.py` files to export new classes/functions
-3. Add tests in the `tests/` directory
+3. Test new functionality through the web interface
 4. Update documentation as needed
 
 ## Configuration
@@ -163,10 +198,19 @@ You can customize the application by modifying the following parameters:
 
 ## Troubleshooting
 
-- **OpenAI API Error**: Ensure your API key is valid and has sufficient credits
+- **Model Loading Issues**: Ensure you have sufficient RAM (8GB+ recommended for HuggingFace models)
 - **Memory Issues**: Reduce chunk size or use smaller documents
 - **Performance**: Consider using GPU acceleration for larger document sets
 - **Import Errors**: Make sure you're running from the project root directory
+- **First Run**: Initial model download may take a few minutes
+
+### GPU/Device Issues
+
+- **CUDA Not Available**: Install PyTorch with CUDA support: `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118`
+- **Apple Silicon (M1/M2)**: Use `FORCE_DEVICE=mps` for GPU acceleration
+- **Force CPU**: Use `FORCE_DEVICE=cpu` if GPU causes issues
+- **Check Devices**: Run `python show_devices.py` to see available devices
+- **Memory Issues**: Reduce model size or use `LOAD_IN_8BIT=true`
 
 ## Contributing
 

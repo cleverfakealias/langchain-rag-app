@@ -1,4 +1,4 @@
 # RAG Engine Package
-from .engine import RAGEngine
+from src.rag_engine.engine import RAGEngine
 
 __all__ = ['RAGEngine'] 

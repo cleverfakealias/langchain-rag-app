@@ -1,4 +1,4 @@
 # Web Interface Package
-from .app import main
+from src.web_interface.app import main
 
 __all__ = ['main'] 

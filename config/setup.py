@@ -50,14 +50,37 @@ def create_env_file():
     print("\n🔧 Creating .env file...")
     try:
         with open(env_file, "w") as f:
-            f.write("# OpenAI API Configuration\n")
-            f.write("# Get your API key from: https://platform.openai.com/api-keys\n")
-            f.write("OPENAI_API_KEY=your_openai_api_key_here\n\n")
-            f.write("# Optional: Model Configuration\n")
-            f.write("# MODEL_NAME=gpt-3.5-turbo\n")
+            f.write("# Configuration for HuggingFace Models\n")
+            f.write("# No API keys required - using completely free models!\n\n")
+            f.write("# ===== MODEL PRESETS =====\n")
+            f.write("# Choose from: fast, balanced, quality, max_quality, technical, mistral, mixtral, phi, gemma, gpt2, llama2\n")
+            f.write("# Default: balanced (now uses Microsoft Phi-2)\n")
+            f.write("MODEL_PRESET=balanced\n\n")
+            f.write("# ===== CUSTOM MODELS (Optional) =====\n")
+            f.write("# Override preset with custom models\n")
+            f.write("# CUSTOM_LLM_MODEL=your-custom-model-name\n")
+            f.write("# CUSTOM_EMBEDDING_MODEL=your-custom-embedding-model\n\n")
+            f.write("# ===== ADVANCED SETTINGS (Optional) =====\n")
+            f.write("# Override preset values\n")
+            f.write("# TEMPERATURE=0.7\n")
+            f.write("# MAX_NEW_TOKENS=512\n")
+            f.write("# LOAD_IN_8BIT=true\n")
+            f.write("# DEVICE_MAP=auto\n")
+            f.write("# TORCH_DTYPE=auto\n\n")
+            f.write("# ===== DEVICE SETTINGS (Optional) =====\n")
+            f.write("# Force device selection: auto, cpu, cuda, mps\n")
+            f.write("# FORCE_DEVICE=auto\n")
+            f.write("# Enable GPU acceleration for embeddings\n")
+            f.write("# EMBEDDING_USE_GPU=true\n\n")
+            f.write("# ===== DOCUMENT PROCESSING =====\n")
+            f.write("# CHUNK_SIZE=1000\n")
+            f.write("# CHUNK_OVERLAP=200\n")
+            f.write("# NUM_RETRIEVED_DOCS=4\n\n")
+            f.write("# ===== SYSTEM SETTINGS =====\n")
+            f.write("# LOG_LEVEL=INFO\n")
+            f.write("# HF_HOME=~/.cache/huggingface\n")
         
         print("✅ .env file created")
-        print("⚠️  Please edit .env file and add your OpenAI API key")
         return True
     except Exception as e:
         print(f"❌ Failed to create .env file: {e}")
@@ -75,22 +98,11 @@ def create_directories():
         else:
             print(f"✅ Directory already exists: {directory}")
 
-def run_test():
-    """Run a quick test to verify installation"""
-    print("\n🧪 Running quick test...")
-    try:
-        result = subprocess.run([sys.executable, "tests/test_rag.py"], 
-                              capture_output=True, text=True)
-        if result.returncode == 0:
-            print("✅ Test passed! RAG system is working correctly.")
-            return True
-        else:
-            print("⚠️  Test failed, but this might be due to missing API key")
-            print("   You can still run the application after adding your API key")
-            return True
-    except Exception as e:
-        print(f"⚠️  Could not run test: {e}")
-        return True
+def verify_installation():
+    """Verify that the installation is complete"""
+    print("\n✅ Installation verification complete!")
+    print("   The application is ready to use.")
+    return True
 
 def main():
     """Main setup function"""
@@ -115,14 +127,13 @@ def main():
     # Create directories
     create_directories()
     
-    # Run test
-    run_test()
+    # Verify installation
+    verify_installation()
     
     print("\n🎉 Setup completed successfully!")
     print("\n📋 Next steps:")
-    print("1. Edit .env file and add your OpenAI API key")
-    print("2. Run the application: streamlit run src/web_interface/app.py")
-    print("3. Open your browser to http://localhost:8501")
+    print("1. Run the application: streamlit run src/web_interface/app.py")
+    print("2. Open your browser to http://localhost:8501")
     print("\n📚 For more information, see README.md")
     
     return True

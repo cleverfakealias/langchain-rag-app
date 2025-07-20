@@ -1,139 +1,40 @@
 import streamlit as st
 import os
-import tempfile
-from typing import List, Dict, Any
-import time
+import sys
+from typing import List, Dict, Any, Optional
 
-from ..rag_engine import RAGEngine
-from ..utils import load_environment, create_directories, is_supported_file, format_file_size, sanitize_filename
+from src.web_interface.file_utils import save_uploaded_file
+from src.web_interface.chat_utils import display_chat_message
+from src.web_interface.engine_init import initialize_rag_engine
+
+# Add the src directory to the Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from rag_engine import RAGEngine
+from utils import create_directories, is_supported_file, format_file_size, sanitize_filename
 
 # Page configuration
 st.set_page_config(
     page_title="LangChain RAG Assistant",
     page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://github.com/your-repo/langchain-rag-app',
+        'Report a bug': 'https://github.com/your-repo/langchain-rag-app/issues',
+        'About': 'LangChain RAG Assistant - A powerful document Q&A system'
+    }
 )
 
-# Custom CSS for better styling
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: #1f77b4;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    .sub-header {
-        font-size: 1.5rem;
-        color: #333;
-        margin-bottom: 1rem;
-    }
-    .success-box {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        border-radius: 5px;
-        padding: 1rem;
-        margin: 1rem 0;
-    }
-    .error-box {
-        background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
-        border-radius: 5px;
-        padding: 1rem;
-        margin: 1rem 0;
-    }
-    .info-box {
-        background-color: #d1ecf1;
-        border: 1px solid #bee5eb;
-        border-radius: 5px;
-        padding: 1rem;
-        margin: 1rem 0;
-    }
-    .chat-message {
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-    }
-    .user-message {
-        background-color: #e3f2fd;
-        border-left: 4px solid #2196f3;
-    }
-    .assistant-message {
-        background-color: #f3e5f5;
-        border-left: 4px solid #9c27b0;
-    }
-    .source-box {
-        background-color: #fff3e0;
-        border: 1px solid #ffcc02;
-        border-radius: 5px;
-        padding: 0.5rem;
-        margin: 0.5rem 0;
-        font-size: 0.9rem;
-    }
-</style>
-""", unsafe_allow_html=True)
 
-@st.cache_resource
-def initialize_rag_engine():
-    """Initialize RAG engine with caching"""
-    try:
-        # Load environment and create directories
-        env_vars = load_environment()
-        create_directories()
-        
-        # Initialize RAG engine
-        rag_engine = RAGEngine(env_vars["openai_api_key"])
-        return rag_engine
-    except Exception as e:
-        st.error(f"Failed to initialize RAG engine: {str(e)}")
-        return None
+# Load custom CSS from styles.css
+css_path = os.path.join(os.path.dirname(__file__), "styles.css")
+with open(css_path) as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-def save_uploaded_file(uploaded_file) -> str:
-    """Save uploaded file to documents directory"""
-    try:
-        # Create documents directory if it doesn't exist
-        os.makedirs("documents", exist_ok=True)
-        
-        # Sanitize filename
-        filename = sanitize_filename(uploaded_file.name)
-        file_path = os.path.join("documents", filename)
-        
-        # Save file
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        
-        return file_path
-    except Exception as e:
-        st.error(f"Error saving file: {str(e)}")
-        return None
 
-def display_chat_message(message: str, is_user: bool = True, sources: List[Dict] = None):
-    """Display a chat message with proper styling"""
-    if is_user:
-        st.markdown(f"""
-        <div class="chat-message user-message">
-            <strong>You:</strong> {message}
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class="chat-message assistant-message">
-            <strong>Assistant:</strong> {message}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Display sources if available
-        if sources:
-            st.markdown("**Sources:**")
-            for source in sources:
-                st.markdown(f"""
-                <div class="source-box">
-                    <strong>File:</strong> {source['source']}<br>
-                    <strong>Content:</strong> {source['content']}
-                </div>
-                """, unsafe_allow_html=True)
+
+
 
 def main():
     # Header
@@ -142,7 +43,7 @@ def main():
     # Initialize RAG engine
     rag_engine = initialize_rag_engine()
     if not rag_engine:
-        st.error("Failed to initialize RAG engine. Please check your OpenAI API key.")
+        st.error("Failed to initialize RAG engine. Please check the console for error details.")
         return
     
     # Sidebar
@@ -165,30 +66,80 @@ def main():
         # Process documents button
         if st.button("🔄 Process Documents", type="primary"):
             if uploaded_files:
-                with st.spinner("Processing documents..."):
-                    # Save uploaded files
-                    file_paths = []
-                    for uploaded_file in uploaded_files:
-                        file_path = save_uploaded_file(uploaded_file)
-                        if file_path:
-                            file_paths.append(file_path)
-                    
-                    if file_paths:
-                        # Process documents
-                        results = rag_engine.process_documents(file_paths)
+                # Create progress container
+                progress_container = st.container()
+                
+                with progress_container:
+                    with st.status("📄 Processing documents...", expanded=True) as status:
+                        # Step 1: Save files
+                        st.write("💾 Saving uploaded files...")
+                        file_paths = []
+                        for i, uploaded_file in enumerate(uploaded_files):
+                            st.write(f"  • Saving {uploaded_file.name}...")
+                            file_path = save_uploaded_file(uploaded_file)
+                            if file_path:
+                                file_paths.append(file_path)
+                                st.write(f"    ✅ Saved successfully")
+                            else:
+                                st.write(f"    ❌ Failed to save")
                         
-                        # Display results
-                        if results["success"]:
-                            st.success(f"✅ Successfully processed {results['total_processed']} documents ({results['total_chunks']} chunks)")
-                            for success in results["success"]:
-                                st.write(f"• {success['filename']} ({success['chunks']} chunks)")
-                        
-                        if results["errors"]:
-                            st.error(f"❌ {len(results['errors'])} documents failed to process")
-                            for error in results["errors"]:
-                                st.write(f"• {os.path.basename(error['file_path'])}: {error['error']}")
+                        if file_paths:
+                            # Step 2: Process documents
+                            st.write("🔧 Processing documents with AI...")
+                            st.write("  • Loading language models...")
+                            st.write("  • Extracting text and creating embeddings...")
+                            st.write("  • Storing in vector database...")
+                            
+                            results = rag_engine.process_documents(file_paths)
+                            
+                            # Step 3: Display results
+                            if results["success"]:
+                                st.write(f"✅ Successfully processed {results['total_processed']} documents")
+                                st.write(f"📊 Created {results['total_chunks']} text chunks")
+                                for success in results["success"]:
+                                    st.write(f"  • {success['filename']} ({success['chunks']} chunks)")
+                                
+                                status.update(label="🎉 Documents processed successfully!", state="complete")
+                            else:
+                                status.update(label="⚠️ Some documents failed to process", state="error")
+                            
+                            if results["errors"]:
+                                st.write(f"❌ {len(results['errors'])} documents failed:")
+                                for error in results["errors"]:
+                                    st.write(f"  • {os.path.basename(error['file_path'])}: {error['error']}")
+                        else:
+                            status.update(label="❌ No files were saved successfully", state="error")
             else:
                 st.warning("Please upload documents first")
+        
+        # System Status
+        st.markdown("---")
+        st.markdown("## ⚙️ System Status")
+        
+        # Get current configuration
+        try:
+            from config.config import Config
+            config = Config()
+            llm_config = config.get_current_llm_config()
+            embedding_config = config.get_current_embedding_config()
+            devices = config.detect_available_devices()
+            
+            st.write(f"**🤖 LLM Model:** {llm_config.name}")
+            st.write(f"**🔤 Embedding Model:** {embedding_config.name}")
+            st.write(f"**💻 Device:** {devices['recommended_device'].upper()}")
+            if devices['cuda']:
+                st.write(f"**🎮 GPU:** {devices['cuda_name']}")
+            st.write(f"**🌡️ Temperature:** {llm_config.temperature}")
+            st.write(f"**📝 Max Tokens:** {llm_config.max_new_tokens}")
+            
+            # Show device status with color
+            if devices['cuda']:
+                st.success("✅ GPU acceleration active")
+            else:
+                st.info("ℹ️ Running on CPU")
+                
+        except Exception as e:
+            st.warning(f"⚠️ Could not load system status: {str(e)}")
         
         # Vector store stats
         st.markdown("---")
@@ -244,9 +195,16 @@ def main():
             st.session_state.messages.append({"content": prompt, "is_user": True})
             display_chat_message(prompt, is_user=True)
             
-            # Get response from RAG engine
-            with st.spinner("Thinking..."):
-                response = rag_engine.ask_question(prompt)
+            # Create a container for progress updates
+            progress_container = st.container()
+            
+            # Get response from RAG engine with detailed progress
+            with progress_container:
+                # Step 1: Searching documents
+                with st.status("🔍 Searching documents...", expanded=True) as status:
+                    st.write("Looking for relevant information in your documents...")
+                    response = rag_engine.ask_question(prompt)
+                    status.update(label="✅ Search completed!", state="complete")
                 
                 # Add assistant response to chat history
                 st.session_state.messages.append({
@@ -268,21 +226,30 @@ def main():
         # Search input
         search_query = st.text_input("Search documents...")
         if search_query and st.button("Search"):
-            with st.spinner("Searching..."):
+            with st.status("🔍 Searching documents...", expanded=True) as status:
+                st.write(f"Looking for documents matching: '{search_query}'")
+                st.write("• Searching vector database...")
+                st.write("• Calculating similarity scores...")
+                
                 search_results = rag_engine.search_documents_with_scores(search_query, k=3)
                 
                 if search_results:
+                    st.write(f"✅ Found {len(search_results)} relevant documents")
+                    status.update(label="✅ Search completed!", state="complete")
+                    
                     st.markdown("**Search Results:**")
-                    for doc, score in search_results:
+                    for i, (doc, score) in enumerate(search_results, 1):
                         st.markdown(f"""
                         <div class="source-box">
-                            <strong>Source:</strong> {doc.metadata.get('source', 'Unknown')}<br>
-                            <strong>Score:</strong> {score:.3f}<br>
+                            <strong>Result #{i}:</strong> {doc.metadata.get('source', 'Unknown')}<br>
+                            <strong>Relevance Score:</strong> {score:.3f} ({(score*100):.1f}%)<br>
                             <strong>Content:</strong> {doc.page_content[:150]}...
                         </div>
                         """, unsafe_allow_html=True)
                 else:
-                    st.info("No relevant documents found")
+                    st.write("❌ No relevant documents found")
+                    status.update(label="❌ No results found", state="error")
+                    st.info("Try using different keywords or check if documents are processed")
 
 if __name__ == "__main__":
     main() 

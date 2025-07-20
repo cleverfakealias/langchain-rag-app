@@ -1,19 +1,34 @@
 import os
+import sys
 from typing import List, Optional, Dict, Any
-from langchain.schema import Document
+from langchain_core.documents import Document
 from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 import chromadb
 import logging
+
+# Add the src directory to the Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from config.config import Config
 
 logger = logging.getLogger(__name__)
 
 class VectorStore:
     """Manages vector database operations using ChromaDB"""
     
-    def __init__(self, persist_directory: str = "vector_db"):
-        self.persist_directory = persist_directory
-        self.embeddings = OpenAIEmbeddings()
+    def __init__(self, persist_directory: str = None):
+        # Get configuration
+        self.config = Config()
+        self.embedding_config = self.config.get_current_embedding_config()
+        
+        self.persist_directory = persist_directory or self.config.VECTOR_DB_PATH
+        self.embeddings = HuggingFaceEmbeddings(
+            model_name=self.embedding_config.name,
+            model_kwargs={
+                'device': self.embedding_config.device
+            }
+        )
         self.vector_store = None
         self._initialize_vector_store()
     
@@ -47,9 +62,6 @@ class VectorStore:
             
             # Add documents to vector store
             self.vector_store.add_documents(documents)
-            
-            # Persist changes
-            self.vector_store.persist()
             
             logger.info(f"Added {len(documents)} documents to vector store")
             
@@ -86,7 +98,7 @@ class VectorStore:
             return {
                 "total_documents": count,
                 "persist_directory": self.persist_directory,
-                "embedding_model": "text-embedding-ada-002"
+                "embedding_model": self.embedding_config.name
             }
         except Exception as e:
             logger.error(f"Error getting collection stats: {str(e)}")
@@ -100,10 +112,13 @@ class VectorStore:
             if filter_dict:
                 self.vector_store.delete(filter=filter_dict)
             else:
-                # Delete all documents
-                self.vector_store.delete()
-            
-            self.vector_store.persist()
+                # Delete all documents by getting all IDs first
+                collection = self.vector_store._collection
+                results = collection.get()
+                if results and results['ids']:
+                    self.vector_store.delete(ids=results['ids'])
+                else:
+                    logger.info("No documents to delete")
             logger.info("Documents deleted from vector store")
             
         except Exception as e:

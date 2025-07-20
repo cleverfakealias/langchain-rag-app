@@ -1,4 +1,4 @@
 # Document Processor Package
-from .processor import DocumentProcessor
+from src.document_processor.processor import DocumentProcessor
 
 __all__ = ['DocumentProcessor'] 

@@ -7,7 +7,7 @@ from langchain_community.document_loaders import (
     UnstructuredMarkdownLoader,
     UnstructuredWordDocumentLoader
 )
-from langchain.schema import Document
+from langchain_core.documents import Document
 import logging
 
 logger = logging.getLogger(__name__)

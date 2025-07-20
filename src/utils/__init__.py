@@ -1,6 +1,5 @@
 # Utils Package
-from .helpers import (
-    load_environment,
+from src.utils.helpers import (
     create_directories,
     get_supported_file_types,
     is_supported_file,
@@ -9,7 +8,6 @@ from .helpers import (
 )
 
 __all__ = [
-    'load_environment',
     'create_directories',
     'get_supported_file_types',
     'is_supported_file',
