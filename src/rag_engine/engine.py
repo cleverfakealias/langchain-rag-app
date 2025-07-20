@@ -119,13 +119,21 @@ class RAGEngine:
         """Setup the conversational retrieval chain"""
         try:
             # Custom prompt template optimized for GPT-2
-            prompt_template = """Based on the following context, answer the question. If you cannot answer from the context, say so.
+            prompt_template = """Using the following context, answer the question in a friendly and detailed manner. 
 
-Context: {context}
+- If you can answer directly, provide a clear paragraph first.
+- If there are multiple key points, include a summary as bullet points after the paragraph.
+- If you are not certain, say so, and provide your best summary based on the context.
+- Cite the source document(s) in your answer. If there are multiple sources, list them at the end.
 
-Question: {question}
+Context:
+{context}
 
-Answer:"""
+Question:
+{question}
+
+Answer:
+"""
 
             prompt = PromptTemplate(
                 template=prompt_template,
