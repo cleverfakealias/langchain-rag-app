@@ -3,7 +3,7 @@ Configuration settings for the LangChain RAG Application
 """
 
 import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
 @dataclass
@@ -194,6 +194,17 @@ class Config:
     CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1000"))
     CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
     
+    # ===== ENHANCED CHUNKING SETTINGS =====
+    CHUNKING_STRATEGY = os.getenv("CHUNKING_STRATEGY", "adaptive")  # Options: recursive, semantic, adaptive
+    MIN_CHUNK_SIZE = int(os.getenv("MIN_CHUNK_SIZE", "50"))
+    MAX_CHUNK_SIZE = int(os.getenv("MAX_CHUNK_SIZE", "2000"))
+    
+    # ===== RETRIEVAL SETTINGS =====
+    RETRIEVAL_METHOD = os.getenv("RETRIEVAL_METHOD", "mmr")  # Options: similarity, mmr, hybrid
+    MMR_LAMBDA = float(os.getenv("MMR_LAMBDA", "0.5"))  # MMR diversity parameter (0-1)
+    FETCH_K = int(os.getenv("FETCH_K", "20"))  # Number of docs to fetch before MMR selection
+    HYBRID_ALPHA = float(os.getenv("HYBRID_ALPHA", "0.7"))  # Weight for semantic vs keyword search
+    
     # ===== VECTOR STORE SETTINGS =====
     VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH", "vector_db")
     NUM_RETRIEVED_DOCS = int(os.getenv("NUM_RETRIEVED_DOCS", "4"))
@@ -262,6 +273,41 @@ class Config:
         embedding_config.device = device_config["embedding_device"]
         
         return embedding_config
+    
+    @classmethod
+    def get_all_llm_configs(cls) -> List[Dict[str, Any]]:
+        """Get all available LLM configurations for fallback"""
+        device_config = cls.get_optimal_device_config()
+        
+        configs = []
+        
+        # Add current configuration first
+        current_config = {
+            "name": cls.get_current_llm_config().name,
+            "temperature": cls.TEMPERATURE,
+            "load_in_8bit": cls.LOAD_IN_8BIT,
+            "device_map": device_config["llm_device_map"],
+            "torch_dtype": cls.TORCH_DTYPE
+        }
+        configs.append(current_config)
+        
+        # Add fallback configurations
+        fallback_presets = ["fast", "balanced", "phi"]  # Only open-access models
+        
+        for preset_name in fallback_presets:
+            if preset_name != cls.CURRENT_PRESET:
+                preset = cls.MODEL_PRESETS.get(preset_name)
+                if preset:
+                    config = {
+                        "name": preset["llm"].name,
+                        "temperature": preset["llm"].temperature,
+                        "load_in_8bit": preset["llm"].load_in_8bit,
+                        "device_map": device_config["llm_device_map"],
+                        "torch_dtype": cls.TORCH_DTYPE
+                    }
+                    configs.append(config)
+        
+        return configs
     
     @classmethod
     def get_available_presets(cls) -> Dict[str, Dict[str, Any]]:

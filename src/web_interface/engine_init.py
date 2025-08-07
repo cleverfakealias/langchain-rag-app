@@ -1,13 +1,13 @@
 import streamlit as st
-from src.rag_engine import RAGEngine
+from src.rag_engine import EnhancedRAGEngine
 from src.utils.helpers import create_directories
 
 @st.cache_resource
 def initialize_rag_engine():
-    """Initialize RAG engine with caching"""
+    """Initialize enhanced RAG engine with caching"""
     try:
         create_directories()
-        rag_engine = RAGEngine()
+        rag_engine = EnhancedRAGEngine()
         return rag_engine
     except Exception as e:
         st.error(f"Failed to initialize RAG engine: {str(e)}")

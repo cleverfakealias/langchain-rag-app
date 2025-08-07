@@ -1,4 +1,4 @@
 # RAG Engine Package
-from src.rag_engine.engine import RAGEngine
+from src.rag_engine.engine import RAGEngine, EnhancedRAGEngine
 
-__all__ = ['RAGEngine'] 
+__all__ = ['RAGEngine', 'EnhancedRAGEngine'] 
