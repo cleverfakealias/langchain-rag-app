@@ -10,13 +10,8 @@ from langchain.prompts import PromptTemplate
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers.pipelines import pipeline
 
-# Try importing BitsAndBytesConfig for quantization support
-try:
-    from transformers.utils.quantization_config import BitsAndBytesConfig
-    _HAS_BNB = True
-except ImportError:
-    BitsAndBytesConfig = None
-    _HAS_BNB = False
+# Import BitsAndBytesConfig for quantization support
+from transformers.utils.quantization_config import BitsAndBytesConfig
 
 from config.config import Config
 from src.document_processor.processor import AdvancedDocumentProcessor
@@ -89,7 +84,7 @@ class EnhancedRAGEngine:
                     "torch_dtype": config['torch_dtype']
                 }
                 
-                if config['load_in_8bit'] and _HAS_BNB:
+                if config['load_in_8bit']:
                     model_kwargs["quantization_config"] = BitsAndBytesConfig(
                         load_in_8bit=True,
                         llm_int8_threshold=6.0,
@@ -182,12 +177,19 @@ Answer:
     
     def set_retrieval_config(self, method: str = "similarity", **kwargs):
         """Set retrieval configuration"""
-        self.vector_store.set_retrieval_config(method=method, **kwargs)
+        self.retrieval_config["method"] = method
+        for key, value in kwargs.items():
+            if key in self.retrieval_config:
+                self.retrieval_config[key] = value
         logger.info(f"Updated retrieval config: {method}")
     
     def set_chunking_config(self, chunk_size: int = 1000, chunk_overlap: int = 200):
         """Set chunking configuration"""
-        self.document_processor.set_chunking_config(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        # Update the document processor's configuration
+        self.document_processor.chunk_size = chunk_size
+        self.document_processor.chunk_overlap = chunk_overlap
+        # Reinitialize the text splitters with new configuration
+        self.document_processor._initialize_text_splitters()
         logger.info(f"Updated chunking config: size={chunk_size}, overlap={chunk_overlap}")
     
     def _retrieve_documents(self, query: str) -> List[Document]:
