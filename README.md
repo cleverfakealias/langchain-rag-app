@@ -166,7 +166,7 @@ The application will be available at `http://localhost:8501`
 
 ## Testing
 
-The application includes comprehensive functionality testing through the web interface. You can test the system by:
+The application includes comprehensive functionality testing through the web interface. You can test the system by uploading documents and asking questions.
 ## Development
 
 ### Testing the Application
