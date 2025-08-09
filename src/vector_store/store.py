@@ -321,6 +321,9 @@ class EnhancedVectorStore:
             
             # Simple keyword matching
             query_words = set(query.lower().split())
+            if not query_words:
+                return []
+
             scored_docs = []
             
             for i, doc_content in enumerate(results['documents']):
