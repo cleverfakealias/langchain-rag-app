@@ -35,9 +35,12 @@ langchain-rag-app/
 ├── config/                      # Configuration files
 │   ├── __init__.py
 │   └── setup.py                 # Setup script
-├── docs/                        # Documentation
-├── examples/                    # Example files
-├── main.py                      # Main entry point
+├── scripts/                     # Helper and startup scripts
+│   ├── main.py                  # CLI entry point
+│   ├── run.py                   # Launcher
+│   ├── run_web.py               # Launch web app
+│   ├── run.sh                   # Unix launcher
+│   └── run.bat                  # Windows launcher
 ├── requirements.txt             # Python dependencies
 ├── .env                         # Environment variables (create this)
 ├── .gitignore                   # Git ignore rules
