@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any, Tuple
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import FakeEmbeddings
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import LLMChainExtractor
 import chromadb
@@ -27,12 +28,23 @@ class EnhancedVectorStore:
         self.embedding_config = self.config.get_current_embedding_config()
         
         self.persist_directory = persist_directory or self.config.VECTOR_DB_PATH
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name=self.embedding_config.name,
-            model_kwargs={
-                'device': self.embedding_config.device
-            }
-        )
+        try:
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name=self.embedding_config.name,
+                model_kwargs={
+                    'device': self.embedding_config.device
+                }
+            )
+        except Exception as e:
+            # Fall back to a lightweight in-memory embedding implementation
+            logger.warning(
+                "Failed to load HuggingFace embeddings '%s'. Falling back to FakeEmbeddings. Error: %s",
+                self.embedding_config.name,
+                e,
+            )
+            self.embeddings = FakeEmbeddings(size=384)
+            # Reflect the actual embedding model used in stats
+            self.embedding_config.name = "fake"
         self.vector_store = None
         self._initialize_vector_store()
     
