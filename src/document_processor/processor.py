@@ -44,11 +44,24 @@ class AdvancedDocumentProcessor:
         )
         
         # Token-based splitter (for more precise control)
-        self.token_splitter = TokenTextSplitter(
-            chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap,
-            encoding_name="cl100k_base"  # GPT-4 tokenizer
-        )
+        try:
+            self.token_splitter = TokenTextSplitter(
+                chunk_size=self.chunk_size,
+                chunk_overlap=self.chunk_overlap,
+                encoding_name="cl100k_base"  # GPT-4 tokenizer
+            )
+        except Exception as e:
+            # Avoid hard failure when tokenizer files aren't available
+            logger.warning(
+                "TokenTextSplitter failed to load 'cl100k_base' tokenizer. "
+                "Falling back to a simple character splitter. Error: %s", e
+            )
+            self.token_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=self.chunk_size,
+                chunk_overlap=self.chunk_overlap,
+                length_function=len,
+                separators=["\n\n", "\n", " ", ""]
+            )
         
         # Markdown-aware splitter
         self.markdown_splitter = RecursiveCharacterTextSplitter(
