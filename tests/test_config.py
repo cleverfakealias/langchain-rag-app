@@ -17,8 +17,13 @@ class TestConfig:
         """Test default model preset is balanced"""
         with patch.dict(os.environ, {}, clear=True):
             config = Config()
+            # Ensure the default preset is balanced
+            assert config.CURRENT_PRESET == "balanced"
+
             llm_config = config.get_current_llm_config()
-            assert llm_config is not None
+            # Retrieved model should match the balanced preset
+            balanced_model = config.MODEL_PRESETS["balanced"]["llm"].name
+            assert llm_config.name == balanced_model
             
     def test_custom_model_preset(self):
         """Test setting custom model preset"""
